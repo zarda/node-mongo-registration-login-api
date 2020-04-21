@@ -45,9 +45,16 @@ async function create(userParam) {
     if (userParam.password) {
         user.hash = bcrypt.hashSync(userParam.password, 10);
     }
-
     // save user
     await user.save();
+
+    // email to user
+
+    // send coupon
+
+    // return token
+    const token = jwt.sign({ sub: user.hash }, config.secret);
+    return { token: token };
 }
 
 async function update(id, userParam) {
