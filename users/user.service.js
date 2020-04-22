@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('_helpers/db');
 const User = db.User;
+const nodemailer = require('nodemailer');
 
 module.exports = {
     authenticate,
@@ -39,6 +40,15 @@ async function create(userParam) {
         throw 'Username "' + userParam.username + '" is already taken';
     }
 
+    // validate email
+    if (!validateEmail(userParam.email)) {
+        throw 'Email "' + userParam.email + '" is incorrect';
+    }
+    let email = await User.findOne({ email: userParam.email });
+    if (email) {
+        throw 'Email "' + userParam.email + '" is already taken';
+    }
+
     const user = new User(userParam);
 
     // hash password
@@ -49,8 +59,10 @@ async function create(userParam) {
     await user.save();
 
     // email to user
+     sendMail(userParam.email);
 
     // send coupon
+
 
     // return token
     const token = jwt.sign({ sub: user.hash }, config.secret);
@@ -79,4 +91,29 @@ async function update(id, userParam) {
 
 async function _delete(id) {
     await User.findByIdAndRemove(id);
+}
+
+function validateEmail(email) {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+
+function sendMail(email) {
+    let mailTransport = nodemailer.createTransport('SMTP', {
+        service: 'Gmail',
+        auth: {
+            user: "user",
+            pass: "passwd",
+        },
+    });
+    mailTransport.sendMail({
+        from: 'sender <sender@gmail.com>',
+        to: 'receiver <' + email + '>',
+        subject: 'Hi :)',
+        html: '<h1>Hello</h1><p>Nice to meet you.</p>',
+    }, function (err) {
+        if (err) {
+            console.log('Unable to send email: ' + err);
+        }
+    });
 }
