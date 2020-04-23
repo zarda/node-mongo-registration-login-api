@@ -51,18 +51,22 @@ async function create(userParam) {
 
     const user = new User(userParam);
 
-    // hash password
+    // hash and validate password
     if (userParam.password) {
         user.hash = bcrypt.hashSync(userParam.password, 10);
     }
+    if (!validatePasswd(userParam.password)) {
+        throw 'Password must be eight characters or longer';
+    }
+
     // save user
     await user.save();
 
     // email to user
-     sendMail(userParam.email);
+    sendMail(userParam.email);
 
     // send coupon
-
+    sendCoupon(userParam);
 
     // return token
     const token = jwt.sign({ sub: user.hash }, config.secret);
@@ -94,8 +98,13 @@ async function _delete(id) {
 }
 
 function validateEmail(email) {
-    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return re.test(String(email).toLowerCase());
+}
+
+function validatePasswd(passwd) {
+    let re = /^(?=.{8,})/;
+    return re.test(String(passwd));
 }
 
 function sendMail(email) {
@@ -116,4 +125,8 @@ function sendMail(email) {
             console.log('Unable to send email: ' + err);
         }
     });
+}
+
+function sendCoupon(user) {
+
 }
