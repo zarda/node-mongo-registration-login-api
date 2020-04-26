@@ -4,9 +4,9 @@ const userService = require('./user.service');
 
 // routes
 router.post('/authenticate', authenticate);
-router.post('/registerEmail', registerEmail);
-router.post('/registerGoogle', registerGoogle);
-router.post('/registerFacebook', registerFacebook);
+router.post('/register/email', registerEmail);
+router.post('/register/google', registerGoogle);
+router.post('/register/facebook', registerFacebook);
 router.get('/', getAll);
 router.get('/current', getCurrent);
 router.get('/:id', getById);

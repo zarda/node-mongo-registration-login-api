@@ -123,11 +123,11 @@ async function getGoogleProfile(accessToken) {
 }
 
 async function createFacebook(userParam) {
-    body = await getFacebookProfile(userParam.token);
+    body = await getFacebookProfile(userParam.inputToken, userParam.accessToken);
     const user = new User({
         username: body.name,
         email: body.email,
-        hash: body.at_hash,
+        hash: bcrypt.hashSync(body.email, 10),
     });
     // save user
     await user.save();
@@ -143,14 +143,14 @@ async function createFacebook(userParam) {
     return { token: token };
 };
 
-async function getFacebookProfile(accessToken) {
+async function getFacebookProfile(inputToken, accessToken) {
     return new Promise((resolve, reject) => {
         if (!accessToken) {
             resolve(null);
             return
         };
         request(
-            `https://oauth2.googleapis.com/tokeninfo?id_token=${accessToken}`,
+            `https://graph.facebook.com/debug_token?input_token=${inputToken}&access_token=${accessToken}`,
             function (error, response, body) {
                 if (error) {
                     reject(error);
