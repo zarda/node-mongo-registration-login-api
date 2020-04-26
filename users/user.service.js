@@ -3,13 +3,18 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('_helpers/db');
 const User = db.User;
+const request = require('request');
 const nodemailer = require('nodemailer');
+const xoauth2 = require('xoauth2');
+const smtpTransport = require('nodemailer-smtp-transport');
 
 module.exports = {
     authenticate,
     getAll,
     getById,
-    create,
+    createEmail,
+    createGoogle,
+    createFacebook,
     update,
     delete: _delete
 };
@@ -34,8 +39,8 @@ async function getById(id) {
     return await User.findById(id).select('-hash');
 }
 
-async function create(userParam) {
-    // validate
+async function createEmail(userParam) {
+    // validate username
     if (await User.findOne({ username: userParam.username })) {
         throw 'Username "' + userParam.username + '" is already taken';
     }
@@ -73,6 +78,94 @@ async function create(userParam) {
     return { token: token };
 }
 
+async function createGoogle(userParam) {
+    body = await getGoogleProfile(userParam.token);
+    const user = new User({
+        username: body.name,
+        email: body.email,
+        hash: body.at_hash,
+    });
+    // save user
+    await user.save();
+
+    // email to user
+    sendMail(userParam.email);
+
+    // send coupon
+    sendCoupon(userParam);
+
+    // return token
+    const token = jwt.sign({ sub: user.hash }, config.secret);
+    return { token: token };
+};
+
+async function getGoogleProfile(accessToken) {
+    return new Promise((resolve, reject) => {
+        if (!accessToken) {
+            resolve(null);
+            return
+        };
+        request(
+            `https://oauth2.googleapis.com/tokeninfo?id_token=${accessToken}`,
+            function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                body = JSON.parse(body);
+                if (body.error) {
+                    reject(body.error);
+                } else {
+                    resolve(body);
+                }
+            }
+        )
+    })
+}
+
+async function createFacebook(userParam) {
+    body = await getFacebookProfile(userParam.token);
+    const user = new User({
+        username: body.name,
+        email: body.email,
+        hash: body.at_hash,
+    });
+    // save user
+    await user.save();
+
+    // email to user
+    sendMail(userParam.email);
+
+    // send coupon
+    sendCoupon(userParam);
+
+    // return token
+    const token = jwt.sign({ sub: user.hash }, config.secret);
+    return { token: token };
+};
+
+async function getFacebookProfile(accessToken) {
+    return new Promise((resolve, reject) => {
+        if (!accessToken) {
+            resolve(null);
+            return
+        };
+        request(
+            `https://oauth2.googleapis.com/tokeninfo?id_token=${accessToken}`,
+            function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                body = JSON.parse(body);
+                if (body.error) {
+                    reject(body.error);
+                } else {
+                    resolve(body);
+                }
+            }
+        )
+    })
+}
+
 async function update(id, userParam) {
     const user = await User.findById(id);
 
@@ -108,19 +201,19 @@ function validatePasswd(passwd) {
 }
 
 function sendMail(email) {
-    let mailTransport = nodemailer.createTransport('SMTP', {
+    let mailTransport = nodemailer.createTransport(smtpTransport({
         service: 'Gmail',
-        auth: {
-            user: "user",
-            pass: "passwd",
-        },
-    });
+        xoauth2: xoauth2.createXOAuth2Generator({
+            user: "USER_ID",
+            pass: "PASS_WORD",
+        })
+    }));
     mailTransport.sendMail({
         from: 'sender <sender@gmail.com>',
         to: 'receiver <' + email + '>',
         subject: 'Hi :)',
         html: '<h1>Hello</h1><p>Nice to meet you.</p>',
-    }, function (err) {
+    }, err => {
         if (err) {
             console.log('Unable to send email: ' + err);
         }

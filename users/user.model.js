@@ -6,7 +6,7 @@ const schema = new Schema({
     hash: { type: String, required: true },
     createdDate: { type: Date, default: Date.now },
     email: { type: String, required: true },
-    inventory: { type : Array , "default" : [], required: false },
+    inventory: { type: Array, "default": [], required: false },
 });
 
 schema.set('toJSON', { virtuals: true });

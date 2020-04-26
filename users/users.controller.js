@@ -4,7 +4,9 @@ const userService = require('./user.service');
 
 // routes
 router.post('/authenticate', authenticate);
-router.post('/register', register);
+router.post('/registerEmail', registerEmail);
+router.post('/registerGoogle', registerGoogle);
+router.post('/registerFacebook', registerFacebook);
 router.get('/', getAll);
 router.get('/current', getCurrent);
 router.get('/:id', getById);
@@ -19,8 +21,20 @@ function authenticate(req, res, next) {
         .catch(err => next(err));
 }
 
-function register(req, res, next) {
-    userService.create(req.body)
+function registerEmail(req, res, next) {
+    userService.createEmail(req.body)
+        .then(token => res.json(token))
+        .catch(err => next(err));
+}
+
+function registerGoogle(req, res, next) {
+    userService.createGoogle(req.body)
+        .then(token => res.json(token))
+        .catch(err => next(err));
+}
+
+function registerFacebook(req, res, next) {
+    userService.createFacebook(req.body)
         .then(token => res.json(token))
         .catch(err => next(err));
 }
