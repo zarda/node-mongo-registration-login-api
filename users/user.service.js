@@ -79,7 +79,7 @@ async function createEmail(userParam) {
 }
 
 async function createGoogle(userParam) {
-    body = await getGoogleProfile(userParam.token);
+    body = await getOAuthProfile(`https://oauth2.googleapis.com/tokeninfo?id_token=${userParam.token}`);
     const user = new User({
         username: body.name,
         email: body.email,
@@ -99,14 +99,14 @@ async function createGoogle(userParam) {
     return { token: token };
 };
 
-async function getGoogleProfile(accessToken) {
+async function getOAuthProfile(url) {
     return new Promise((resolve, reject) => {
         if (!accessToken) {
             resolve(null);
             return
         };
         request(
-            `https://oauth2.googleapis.com/tokeninfo?id_token=${accessToken}`,
+            url,
             function (error, response, body) {
                 if (error) {
                     reject(error);
@@ -123,7 +123,7 @@ async function getGoogleProfile(accessToken) {
 }
 
 async function createFacebook(userParam) {
-    body = await getFacebookProfile(userParam.inputToken, userParam.accessToken);
+    body = await getOAuthProfile(`https://graph.facebook.com/debug_token?input_token=${userParam.inputToken}&access_token=${userParam.accessToken}`);
     const user = new User({
         username: body.name,
         email: body.email,
@@ -143,28 +143,6 @@ async function createFacebook(userParam) {
     return { token: token };
 };
 
-async function getFacebookProfile(inputToken, accessToken) {
-    return new Promise((resolve, reject) => {
-        if (!accessToken) {
-            resolve(null);
-            return
-        };
-        request(
-            `https://graph.facebook.com/debug_token?input_token=${inputToken}&access_token=${accessToken}`,
-            function (error, response, body) {
-                if (error) {
-                    reject(error);
-                }
-                body = JSON.parse(body);
-                if (body.error) {
-                    reject(body.error);
-                } else {
-                    resolve(body);
-                }
-            }
-        )
-    })
-}
 
 async function update(id, userParam) {
     const user = await User.findById(id);
@@ -204,15 +182,15 @@ function sendMail(email) {
     let mailTransport = nodemailer.createTransport(smtpTransport({
         service: 'Gmail',
         xoauth2: xoauth2.createXOAuth2Generator({
-            user: "USER_ID",
-            pass: "PASS_WORD",
+            user: config.gmailUserID,
+            pass: config.gmailPassword,
         })
     }));
     mailTransport.sendMail({
-        from: 'sender <sender@gmail.com>',
+        from: 'sender <' + config.senderMail + '>',
         to: 'receiver <' + email + '>',
-        subject: 'Hi :)',
-        html: '<h1>Hello</h1><p>Nice to meet you.</p>',
+        subject: config.senderMailSubject,
+        html: config.senderMailHtml,
     }, err => {
         if (err) {
             console.log('Unable to send email: ' + err);
@@ -221,5 +199,5 @@ function sendMail(email) {
 }
 
 function sendCoupon(user) {
-
+    // Await specfic design
 }
